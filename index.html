@@ -404,9 +404,14 @@
                    });
                    var rowNumStr = numberSet.join(_config.numberSeparator);
                    $numberScreen.html(rowNumStr).removeClass("invisible");
-                   $(_selector.gameMsg).find('span').html(numberSetIndex+1);
+                   var $idx = $(_selector.gameMsg).find('span');
+                   if ($idx.length == 0) {
+                       $(_selector.gameMsg).html("Look Carefully! Current Set: <span></span>").hide().fadeIn();
+                       $idx = $(_selector.gameMsg).find('span');
+                   }
+                   $idx.html(numberSetIndex+1);
                    setTimeout(function(){
-                       $numberScreen.html(rowNumStr).addClass("invisible");
+                       $numberScreen.addClass("invisible");
                        $(_selector.gameMsg).find('span').html("_");
                    }, _const.blankDuration);
                }
