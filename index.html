@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+       <meta charset="utf-8">
+       <title>Crazy Numbers</title>
+       
+        <link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.indigo-pink.min.css">
+        <script src="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.min.js"></script>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        
+        <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Aclonica" />
+        
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+       
+       <style>
+           body {
+               font-family: "Trebuchet MS", Helvetica, sans-serif;
+               min-width: 880px;
+           }
+           
+           .pageWrapper {
+               width: 90%;
+               margin: 50px auto;
+               padding: 20px;
+               border: 1px solid aliceblue;
+               box-shadow: 0px 2px 80px aliceblue;
+               border-radius: 10px;
+           }
+           
+           #configTable {
+               display: none;
+               float: right;
+               margin: 0px 30px 30px 0px;
+           }
+           
+           .gameHeader #title, #configTable th {
+               font-family: Aclonica;
+           }
+           
+           .gameHeader #title {
+               float: left;
+           }
+           
+           #showConfigWrapper {
+               display: inline-block;
+               float: right;
+               margin-right: 30px;
+           }
+           
+           .configWrapper td, .configWrapper th, .configWrapper input, .configWrapper label {
+               font-size: 14px;
+           }
+           
+           #configForm tr td:first-child {
+               vertical-align: middle;
+           }
+           
+           #configTable {
+               min-width: 600px;
+           }
+           
+           #configTable td {
+               padding: 2px 30px;
+           }
+           
+           #saveBtn {
+               position: absolute;
+               right: 20px;
+               bottom: 5px;
+           }
+           
+           #restoreBtn {
+               position: absolute;
+               right: 105px;
+               bottom: 5px;
+           }
+           
+           .gameWrapper {
+               margin-top: 20px;
+           }
+           
+            .demo-card-wide.mdl-card {
+                width: 100%;
+                min-height: 80px;
+            }
+            .demo-card-wide > .mdl-card__title .mdl-card__title-text {
+                font-family: Aclonica;
+                position: absolute;
+                top: 25px;
+            }
+           
+           .mdl-card__supporting-text {
+               width: 100%;
+           }
+           
+           #numberScreenWrapper {
+               margin: 5px 30px;
+           }
+           
+           #numberScreen {
+               font-size: 30px;
+               line-height: 30px;
+           }
+           
+           #gameScreenTitle {
+               width: 200px;
+           }
+           
+           .numberCell {
+               float: left;
+               margin: 0px 5px;
+           }
+           
+           #gameMsg {
+               margin-left: 15px;
+           }
+           
+           #minMaxErrorMsgTR {
+               display: none;
+           }
+           
+           #minMaxErrorMsg {
+               color: #de3226;
+               font-size: 14px;
+               font-weight: bold;
+               float: left;
+           }
+           
+           #answerWrapper {
+               margin-top: 20px;
+           }
+           
+           .rowLabel {
+               font-weight: bold;
+           }
+           
+           #answerWrapper input.userAnswer {
+               width: 50%;
+               min-height: 20px;
+               padding: 3px 8px;
+               border: 1px gray solid;
+               box-shadow: 1px 1px 2px gray;
+               text-align: center;
+           }
+           
+           #answerWrapper input.userAnswer:disabled {
+               background: transparent;
+           }
+           
+           #answerWrapper .answer {
+               padding-left: 10px;
+           }
+           
+           .correct {
+               color: green;
+           }
+           
+           .wrong {
+               color: red;
+           }
+           
+           .partialCorrect {
+               color: brown;
+           }
+           
+           #resultMsg {
+               outline: 2px solid gray;
+               font-size: 18px;
+               padding: 5px 10px;
+               margin: 10px 20px;
+               display: none;
+           }
+       </style>
+       
+       <script type="text/javascript">
+           var _selector = {
+               showConfig: "#showConfig",
+               configTable: "#configTable",
+               configForm: "#configForm",
+               inputMinNum: "#minNum",
+               inputMaxNum: "#maxNum",
+               inputSetSize: "#setSize",
+               inputSetCount: "#setCount",
+               inputDisplayInterval: "#displayInterval",
+               saveBtn: "#saveBtn",
+               restoreBtn: "#restoreBtn",
+               startGameBtn: "#startGame",
+               restartGameBtn: "#restartGame",
+               numberScreen: "#numberScreen",
+               numberCell: ".numberCell",
+               gameMsg: "#gameMsg",
+               minMaxErrorMsgTR: "#minMaxErrorMsgTR",
+               answerRowsWrapper: "#answerRowsWrapper",
+               checkAnswerBtn: "#checkAnswer",
+               resultMsg: "#resultMsg",
+               userAnswerInput: ".userAnswer",
+               answer: ".answer",
+           }
+           
+           var _config = {
+               defaultMinNum: 0,
+               defaultMaxNum: 1000,
+               defaultSetSize: 4,
+               defaultSetCount: 5,
+               defaultDisplayInterval: 500,
+               numberSeparator: " ",
+               cookieExpireDdays: 3650,
+           }
+           
+           var _const = {
+               appConfigCookieName: "appConfig",
+               numberFontSize: 30, // Copy from CSS Value
+           }
+           
+           var _var = {
+               numbers: [],
+               numStr: '',
+               gameStarted: false,
+           }
+           
+           var registerEvents = function() {
+               $(_selector.showConfig).click(function(){
+                   var isVisible = ($(_selector.configTable+":visible").length > 0)
+                   if (isVisible) {
+                       $(_selector.configTable).fadeOut();
+                   }
+                   else {
+                       $(_selector.minMaxErrorMsgTR).hide();
+                       $(_selector.configTable).fadeIn();
+                   }
+               });
+               
+               $(_selector.saveBtn).click(function(){
+                   if (!$(_selector.configForm)[0].checkValidity()) {
+                       return;
+                   }
+                   $(_selector.minMaxErrorMsgTR).hide();
+                   
+                   // Get Form Values
+                   var minNum = $(_selector.inputMinNum).val();
+                   var maxNum = $(_selector.inputMaxNum).val();
+                   var setSize = $(_selector.inputSetSize).val();
+                   var setCount = $(_selector.inputSetCount).val();
+                   var displayInterval = $(_selector.inputDisplayInterval).val();
+                   var appConfig = {
+                       minNum: parseInt(minNum,10),
+                       maxNum: parseInt(maxNum,10),
+                       setSize: parseInt(setSize,10),
+                       setCount: parseInt(setCount,10),
+                       displayInterval: parseInt(displayInterval,10)
+                   }
+                   
+                   // Validate
+                   if (appConfig.minNum > appConfig.maxNum) {
+                       $(_selector.minMaxErrorMsgTR).hide().fadeIn();
+                       return;
+                   }
+                   
+                   // Apply Config
+                   storeValue(_const.appConfigCookieName, JSON.stringify(appConfig));
+                   applyConfig(appConfig);
+                   
+                   $(_selector.showConfig).trigger("click");
+                   loadGame();
+               });
+               
+               $(_selector.restoreBtn).click(function(){
+                   var appConfig = getDefaultAppConfig();
+                   storeValue(_const.appConfigCookieName, JSON.stringify(appConfig));
+                   applyConfig(appConfig);
+                   
+                   $(_selector.showConfig).trigger("click");
+                   loadGame();
+               });
+               
+               $(_selector.startGameBtn).click(function(){
+                   runGame();
+               });
+               
+               $(_selector.restartGameBtn).click(function(){
+                   loadGame();
+               });
+               
+               $(_selector.checkAnswerBtn).click(function(){
+                   checkAnswer();
+               });
+           }
+           
+           var getDefaultAppConfig = function() {
+               var appConfig = {
+                   minNum: _config.defaultMinNum,
+                   maxNum: _config.defaultMaxNum,
+                   setSize: _config.defaultSetSize,
+                   setCount: _config.defaultSetCount,
+                   displayInterval: _config.defaultDisplayInterval
+               }
+               return appConfig;
+           }
+           
+           var initConfig = function() {
+               var appConfig = getStoredValue(_const.appConfigCookieName);
+               if (appConfig == '') {
+                   appConfig = getDefaultAppConfig();
+               }
+               else {
+                   appConfig = JSON.parse(appConfig);
+               }
+               $(_selector.inputMinNum).val(appConfig.minNum);
+               $(_selector.inputMaxNum).val(appConfig.maxNum);
+               $(_selector.inputSetSize).val(appConfig.setSize);
+               $(_selector.inputSetCount).val(appConfig.setCount);
+               $(_selector.inputDisplayInterval).val(appConfig.displayInterval);
+               applyConfig(appConfig);
+           }
+           
+           var applyConfig = function(appConfig) {
+               _const.minNum = parseInt(appConfig.minNum,10);
+               _const.maxNum = parseInt(appConfig.maxNum,10);
+               _const.setSize = parseInt(appConfig.setSize,10);
+               _const.setCount = parseInt(appConfig.setCount,10);
+               _const.displayInterval = parseInt(appConfig.displayInterval,10);
+               
+               var tmp = parseFloat(_const.maxNum);
+               var digitCount = 0;
+               while (tmp > 1.0) {
+                   digitCount++;
+                   tmp = tmp / 10;
+               }
+               _const.maxNumOfDigits = digitCount;
+               
+               // Set Value in Form
+               $(_selector.inputMinNum).val(_const.minNum);
+               $(_selector.inputMaxNum).val(_const.maxNum);
+               $(_selector.inputSetSize).val(_const.setSize);
+               $(_selector.inputSetCount).val(_const.setCount);
+               $(_selector.inputDisplayInterval).val(_const.displayInterval);
+           }
+           
+           var loadGame = function() {
+               // Fill Space of Number Screen
+               var numArr = [];
+               for (var i = 0; i < _const.setSize; i++) {
+                   var str = "<div class='numberCell'>" + _const.maxNum + "</div>";
+                   numArr.push(str);
+               }
+               var numStr = numArr.join(_config.numberSeparator);
+               _var.numStr = numStr;
+               $numberScreen = $(_selector.numberScreen);
+               $numberScreen.css("height", "auto");
+               $numberScreen.html(_var.numStr);
+               var minWidth = _const.numberFontSize * _const.maxNumOfDigits;
+               $numberScreen.find(_selector.numberCell).css("min-width", minWidth);
+               $numberScreen.css("height", $numberScreen.height());
+               
+               // Generate Random Numbers
+               var randomNumArr = [];
+               for (var i = 0; i < _const.setCount; i++) {
+                   var rowArr = [];
+                   for (var j = 0; j < _const.setSize; j++) {
+                       var randomNum = Math.floor((Math.random() * _const.maxNum) + _const.minNum);
+                       rowArr.push(randomNum);
+                   }
+                   randomNumArr.push(rowArr);
+               }
+               _var.numbers = randomNumArr;
+               
+               $(_selector.gameMsg).html("Press Run to show numbers!").hide().fadeIn();
+               
+               drawAnswerSheet();
+               $(_selector.userAnswerInput).prop("disabled", false);
+               $(_selector.checkAnswerBtn).fadeIn();
+               $(_selector.resultMsg).html("").hide();
+           }
+           
+           var runGame = function() {
+               if (_var.gameStarted) {
+                   $(_selector.gameMsg).html("Already Running!").hide().fadeIn();
+                   return;
+               }
+               $(_selector.gameMsg).html("Look Carefully!").hide().fadeIn();
+               _var.gameStarted = true;
+               _var.numberSetIndex = 0;
+               showNumberSet(_var.numberSetIndex);
+               _var.game = setInterval(function(){
+                   _var.numberSetIndex++;
+                   showNumberSet(_var.numberSetIndex);
+               }, _const.displayInterval);
+           }
+           
+           var showNumberSet = function(numberSetIndex) {
+               $numberScreen = $(_selector.numberScreen);
+               if (numberSetIndex in _var.numbers) {
+                   var numberSet = _var.numbers[numberSetIndex];
+                   numberSet = $.map(numberSet, function(val, i){
+                       return "<div class='numberCell'>" + val + "</div>";
+                   });
+                   var rowNumStr = numberSet.join(_config.numberSeparator);
+                   $numberScreen.html(rowNumStr).removeClass("invisible");
+               }
+               else {
+                   $numberScreen.html(_var.numStr).addClass("invisible");
+                   finishRunGame();
+               }
+               var minWidth = _const.numberFontSize * _const.maxNumOfDigits;
+               $numberScreen.find(_selector.numberCell).css("min-width", minWidth);
+           }
+           
+           var finishRunGame = function() {
+               clearInterval(_var.game);
+               _var.gameStarted = false;
+               $(_selector.gameMsg).html("You can Run again at anytime.").hide().fadeIn();
+           }
+           
+           var drawAnswerSheet = function() {
+               var $answerRowsWrapper = $(_selector.answerRowsWrapper);
+               $answerRowsWrapper.children().remove();
+               for (var i = 0; i < _const.setCount; i++) {
+                   var $rowEl = $("<div/>");
+                   $rowEl.append("<br/><span class='rowLabel'>Row "+(i+1)+"</span>")
+                   var $answerEl = $("<div/>").addClass("mdl-grid");
+                   for (var j = 0; j < _const.setSize; j++) {
+                       var input = "<input type='text' class='userAnswer'>";
+                       var ans = "<span class='answer invisible'>"+_var.numbers[i][j]+"</span>";
+                       var el = "<div class='mdl-cell mdl-cell--2-col'>"+input+ans+"</div>";
+                       $answerEl.append(el);
+                   }
+                   $rowEl.append($answerEl);
+                   $answerRowsWrapper.append($rowEl);
+               }
+           }
+           
+           var checkAnswer = function() {
+               $btn = $(_selector.checkAnswerBtn);
+               $(_selector.userAnswerInput).prop("disabled", true);
+               var correctMsg = "<span class='correct'>All Correct</span>",
+                   wrongMsg = "<span class='wrong'>All Wrong</span>",
+                   partialCorrectMsg = "<span class='partialCorrect'>Partial Correct</span>",
+                   correctCount = 0,
+                   wrongCount = 0;
+               $(_selector.userAnswerInput).each(function(i, _el){
+                   var $el = $(_el);
+                   var userInput = $el.val();
+                   var $answerEl = $el.siblings(_selector.answer);
+                   var answer = $answerEl.text();
+                   if (userInput == answer) {
+                       correctCount++;
+                       $answerEl.addClass("correct");
+                   }
+                   else {
+                       wrongCount++;
+                       $answerEl.addClass("wrong");
+                   }
+               });
+               var msg = "";
+               if (correctCount > 0) {
+                   if (wrongCount == 0) {
+                       msg = correctMsg;
+                   }
+                   else {
+                       msg = partialCorrectMsg;
+                   }
+               }
+               else {
+                   msg = wrongMsg;
+               }
+               msg += " (Correct: "+correctCount+", Wrong: "+wrongCount+")";
+               setTimeout(function(){
+                   $(_selector.resultMsg).html(msg).fadeIn();
+               }, 500);
+               $(_selector.answer).removeClass("invisible");
+               $btn.fadeOut();
+           }
+           
+           $(document).ready(function(){
+               registerEvents();
+               initConfig();
+               loadGame();
+           });
+           
+           
+           // Helper
+           
+            function storeValue(key, value) {
+                if (typeof(Storage) !== "undefined") {
+                    localStorage.setItem(key, value);
+                }
+                else {
+                    var d = new Date();
+                    d.setTime(d.getTime() + (_const.cookieExpireDdays * 24 * 60 * 60 * 1000));
+                    var expires = "expires=" + d.toGMTString();
+                    document.cookie = key + "=" + value + "; " + expires;
+                }
+            }
+
+            function getStoredValue(key) {
+                if (typeof(Storage) !== "undefined") {
+                    return localStorage.getItem(key) == null ? "" : localStorage.getItem(key);
+                }
+                else {
+                    var name = key + "=";
+                    var ca = document.cookie.split(';');
+                    for (var i = 0; i < ca.length; i++) {
+                        var c = ca[i];
+                        while (c.charAt(0) === ' ') c = c.substring(1);
+                        if (c.indexOf(name) !== -1) return c.substring(name.length, c.length);
+                    }
+                    return "";
+                }
+            }
+       </script>
+   </head>
+    <body>
+        <div class="pageWrapper">
+           
+           <div class="gameHeader clearfix">
+           <h3 id="title">Crazy Numbers</h3>
+            <div id="showConfigWrapper">
+                <a class="mdl-button mdl-js-button mdl-js-ripple-effect" id="showConfig">
+                    <i class="material-icons">settings</i> Settings
+                </a>
+            </div>
+           </div>
+            
+            <div class="configWrapper">
+               <form id="configForm" action="#" onsubmit="return false">
+                    <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" id="configTable">
+                        <thead>
+                            <tr>
+                                <th class="mdl-data-table__cell--non-numeric" colspan="2">
+                                    Settings <span style="font-size:12px">(Auto Start New Game On Save)</span>
+                                    <button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="saveBtn">
+                                        <i class="material-icons">done</i> Save
+                                    </button>
+                                    <button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="restoreBtn">
+                                        <i class="material-icons">restore</i> Restore Default
+                                    </button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                          <tr id="minMaxErrorMsgTR">
+                              <td colspan="2">
+                                 <div class="clearfix">
+                                      <div id="minMaxErrorMsg">
+                                          Warning: Minimum number must be smaller than maximum number!
+                                      </div>
+                                  </div>
+                              </td>
+                          </tr>
+                           <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Minimum number
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="([0-9]*)" id="minNum" />
+                                        <label class="mdl-textfield__label" for="minNum">Number...</label>
+                                        <span class="mdl-textfield__error">
+                                            Minimum number must be non-negative integer!
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Maximum number
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="0*[1-9][0-9]*" id="maxNum" />
+                                        <label class="mdl-textfield__label" for="maxNum">Number...</label>
+                                        <span class="mdl-textfield__error">
+                                            Maximum number must be a positive integer!
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Size of each set
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="0*[1-9][0-9]*" id="setSize" />
+                                        <label class="mdl-textfield__label" for="setSize">Number...</label>
+                                        <span class="mdl-textfield__error">Size must be a positive integer!</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Number of sets
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="0*[1-9][0-9]*" id="setCount" />
+                                        <label class="mdl-textfield__label" for="setCount">Number...</label>
+                                        <span class="mdl-textfield__error">Count must be a positive integer!</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Display interval (ms)
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="0*[1-9][0-9]*" id="displayInterval" />
+                                        <label class="mdl-textfield__label" for="displayInterval">Number...</label>
+                                        <span class="mdl-textfield__error">Interval must be a positive integer!</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+            
+            <div class="gameWrapper">
+                <div class="demo-card-wide mdl-card mdl-shadow--2dp">
+                  <div class="mdl-card__title">
+                    <div id="gameScreenTitle"><h2 class="mdl-card__title-text">Game Screen</h2></div>
+                    <div id="startGameWrapper">
+                        <a class="mdl-button mdl-button--raised mdl-js-button mdl-js-ripple-effect" id="startGame">
+                          <i class="material-icons">play_arrow</i>Run
+                        </a>
+                        <span id="gameMsg">
+                        </span>
+                    </div>
+                  </div>
+                  <div class="mdl-card__supporting-text" id="numberScreenWrapper">
+                    <div id="numberScreen" class="invisible clearfix">
+                    </div>
+                  </div>
+                  <div class="mdl-card__menu">
+                    <a class="mdl-button mdl-js-button mdl-js-ripple-effect" id="restartGame">
+                      <i class="material-icons">refresh</i> New Game
+                    </a>
+                  </div>
+                </div>
+            </div>
+            <br/>
+            <div class="answerSheetWrapper">
+                <div class="demo-card-wide mdl-card mdl-shadow--2dp">
+                  <div class="mdl-card__title">
+                    <div id="answerSheetTitle"><h2 class="mdl-card__title-text">Answer Sheet</h2></div>
+                  </div>
+                  <div class="mdl-card__supporting-text" id="answerWrapper">
+                    <div>
+                        Please fill in the numbers you read from the game screen.
+                        And press Check Answer on complete.
+                    </div>
+                    <div id="answerRowsWrapper">
+                    </div>
+                  </div>
+                  <div class="mdl-card__menu">
+                    <a class="mdl-button mdl-js-button mdl-js-ripple-effect" id="checkAnswer">
+                      <i class="material-icons">spellcheck</i> Check Answer
+                    </a>
+                    <div id="resultMsg"></div>
+                  </div>
+                </div>
+            </div>
+            
+        </div>
+    </body>
+</html>
