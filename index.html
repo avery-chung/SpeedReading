@@ -410,7 +410,7 @@
                        $idx = $(_selector.gameMsg).find('span');
                    }
                    $idx.html(numberSetIndex+1);
-                   setTimeout(function(){
+                   _var.rowTimeout = setTimeout(function(){
                        $numberScreen.addClass("invisible");
                        $(_selector.gameMsg).find('span').html("_");
                    }, _const.blankDuration);
@@ -425,6 +425,7 @@
            
            var finishRunGame = function() {
                clearInterval(_var.game);
+               clearTimeout(_var.rowTimeout);
                _var.gameStarted = false;
                $(_selector.gameMsg).html("You can Run again at anytime.").hide().fadeIn();
            }
@@ -475,14 +476,12 @@
                    var isLastElOfRow = ((i+1) % _const.setSize == 0);
                    if (isLastElOfRow) {
                        var rowNum = ((i+1) / _const.setSize) - 1;
-                       if (rowNum > -1) {
-                           var cssClz = "wrong";
-                           if (rowCorrectCount == _const.setSize){
-                               cssClz = "correct";
-                               correctRowCount++;
-                           }
-                           $(".rowLabel[data-row='"+rowNum+"']").addClass(cssClz);
+                       var cssClz = "wrong";
+                       if (rowCorrectCount == _const.setSize){
+                           cssClz = "correct";
+                           correctRowCount++;
                        }
+                       $(".rowLabel[data-row='"+rowNum+"']").addClass(cssClz);
                        rowCorrectCount = 0;
                    }
                });
