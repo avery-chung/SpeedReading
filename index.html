@@ -378,7 +378,7 @@
                    $(_selector.gameMsg).html("Already Running!").hide().fadeIn();
                    return;
                }
-               $(_selector.gameMsg).html("Look Carefully!").hide().fadeIn();
+               $(_selector.gameMsg).html("Look Carefully! Current Row: <span></span>").hide().fadeIn();
                _var.gameStarted = true;
                _var.numberSetIndex = 0;
                showNumberSet(_var.numberSetIndex);
@@ -397,6 +397,7 @@
                    });
                    var rowNumStr = numberSet.join(_config.numberSeparator);
                    $numberScreen.html(rowNumStr).removeClass("invisible");
+                   $(_selector.gameMsg).find('span').html(numberSetIndex+1);
                }
                else {
                    $numberScreen.html(_var.numStr).addClass("invisible");
