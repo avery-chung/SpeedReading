@@ -354,10 +354,11 @@
                
                // Generate Random Numbers
                var randomNumArr = [];
+               var diff = _const.maxNum - _const.minNum + 1;
                for (var i = 0; i < _const.setCount; i++) {
                    var rowArr = [];
                    for (var j = 0; j < _const.setSize; j++) {
-                       var randomNum = Math.floor((Math.random() * _const.maxNum) + _const.minNum);
+                       var randomNum = Math.floor(Math.random() * diff + _const.minNum);
                        rowArr.push(randomNum);
                    }
                    randomNumArr.push(rowArr);
