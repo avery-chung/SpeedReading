@@ -210,6 +210,7 @@
            var _const = {
                appConfigCookieName: "appConfig",
                numberFontSize: 30, // Copy from CSS Value
+               blankDuration: _config.defaultDisplayInterval,
            }
            
            var _var = {
@@ -261,6 +262,8 @@
                    applyConfig(appConfig);
                    
                    $(_selector.showConfig).trigger("click");
+                   
+                   finishRunGame();
                    loadGame();
                });
                
@@ -270,6 +273,7 @@
                    applyConfig(appConfig);
                    
                    $(_selector.showConfig).trigger("click");
+                   finishRunGame();
                    loadGame();
                });
                
@@ -334,6 +338,8 @@
                $(_selector.inputSetSize).val(_const.setSize);
                $(_selector.inputSetCount).val(_const.setCount);
                $(_selector.inputDisplayInterval).val(_const.displayInterval);
+               
+               _const.blankDuration = _const.displayInterval;
            }
            
            var loadGame = function() {
@@ -378,14 +384,14 @@
                    $(_selector.gameMsg).html("Already Running!").hide().fadeIn();
                    return;
                }
-               $(_selector.gameMsg).html("Look Carefully! Current Row: <span></span>").hide().fadeIn();
+               $(_selector.gameMsg).html("Look Carefully! Current Set: <span></span>").hide().fadeIn();
                _var.gameStarted = true;
                _var.numberSetIndex = 0;
                showNumberSet(_var.numberSetIndex);
                _var.game = setInterval(function(){
                    _var.numberSetIndex++;
                    showNumberSet(_var.numberSetIndex);
-               }, _const.displayInterval);
+               }, _const.displayInterval + _const.blankDuration);
            }
            
            var showNumberSet = function(numberSetIndex) {
@@ -398,6 +404,10 @@
                    var rowNumStr = numberSet.join(_config.numberSeparator);
                    $numberScreen.html(rowNumStr).removeClass("invisible");
                    $(_selector.gameMsg).find('span').html(numberSetIndex+1);
+                   setTimeout(function(){
+                       $numberScreen.html(rowNumStr).addClass("invisible");
+                       $(_selector.gameMsg).find('span').html("_");
+                   }, _const.blankDuration);
                }
                else {
                    $numberScreen.html(_var.numStr).addClass("invisible");
@@ -418,7 +428,7 @@
                $answerRowsWrapper.children().remove();
                for (var i = 0; i < _const.setCount; i++) {
                    var $rowEl = $("<div/>");
-                   $rowEl.append("<br/><span class='rowLabel'>Row "+(i+1)+"</span>")
+                   $rowEl.append("<br/><span class='rowLabel' data-row="+i+">Set "+(i+1)+"</span>")
                    var $answerEl = $("<div/>").addClass("mdl-grid");
                    for (var j = 0; j < _const.setSize; j++) {
                        var input = "<input type='text' class='userAnswer'>";
@@ -438,7 +448,9 @@
                    wrongMsg = "<span class='wrong'>All Wrong</span>",
                    partialCorrectMsg = "<span class='partialCorrect'>Partial Correct</span>",
                    correctCount = 0,
-                   wrongCount = 0;
+                   wrongCount = 0,
+                   rowCorrectCount = 0,
+                   correctRowCount = 0;
                $(_selector.userAnswerInput).each(function(i, _el){
                    var $el = $(_el);
                    var userInput = $el.val();
@@ -446,11 +458,26 @@
                    var answer = $answerEl.text();
                    if (userInput == answer) {
                        correctCount++;
+                       rowCorrectCount++
                        $answerEl.addClass("correct");
                    }
                    else {
                        wrongCount++;
                        $answerEl.addClass("wrong");
+                   }
+                   
+                   var isLastElOfRow = ((i+1) % _const.setSize == 0);
+                   if (isLastElOfRow) {
+                       var rowNum = ((i+1) / _const.setSize) - 1;
+                       if (rowNum > -1) {
+                           var cssClz = "wrong";
+                           if (rowCorrectCount == _const.setSize){
+                               cssClz = "correct";
+                               correctRowCount++;
+                           }
+                           $(".rowLabel[data-row='"+rowNum+"']").addClass(cssClz);
+                       }
+                       rowCorrectCount = 0;
                    }
                });
                var msg = "";
@@ -465,7 +492,9 @@
                else {
                    msg = wrongMsg;
                }
-               msg += " (Correct: "+correctCount+", Wrong: "+wrongCount+")";
+               var totalCount = _const.setSize * _const.setCount;
+               msg += "<br/>Correct: " + correctCount + "/" + totalCount
+                        + "<br/>Correct Set: " + correctRowCount + "/" + _const.setCount;
                setTimeout(function(){
                    $(_selector.resultMsg).html(msg).fadeIn();
                }, 500);
