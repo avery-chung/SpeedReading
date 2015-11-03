@@ -170,6 +170,13 @@
                margin: 10px 20px;
                display: none;
            }
+
+           .rotated {
+              -ms-transform: scale(-1);
+              -webkit-transform: scale(-1);
+              transform: scale(-1);
+           }
+
        </style>
        
        <script type="text/javascript">
@@ -195,6 +202,7 @@
                resultMsg: "#resultMsg",
                userAnswerInput: ".userAnswer",
                answer: ".answer",
+               inputIsHardMode: "#isHardMode",
            }
            
            var _config = {
@@ -203,6 +211,7 @@
                defaultSetSize: 4,
                defaultSetCount: 5,
                defaultDisplayInterval: 500,
+               defaultIsHardMode: false,
                numberSeparator: " ",
                cookieExpireDdays: 3650,
            }
@@ -217,6 +226,7 @@
                numbers: [],
                numStr: '',
                gameStarted: false,
+               hardMode: false,
            }
            
            var registerEvents = function() {
@@ -243,12 +253,14 @@
                    var setSize = $(_selector.inputSetSize).val();
                    var setCount = $(_selector.inputSetCount).val();
                    var displayInterval = $(_selector.inputDisplayInterval).val();
+                   var isHardMode = $(_selector.inputIsHardMode).prop("checked");
                    var appConfig = {
                        minNum: parseInt(minNum,10),
                        maxNum: parseInt(maxNum,10),
                        setSize: parseInt(setSize,10),
                        setCount: parseInt(setCount,10),
-                       displayInterval: parseInt(displayInterval,10)
+                       displayInterval: parseInt(displayInterval,10),
+                       isHardMode: (isHardMode ? true : false)
                    }
                    
                    // Validate
@@ -297,7 +309,8 @@
                    maxNum: _config.defaultMaxNum,
                    setSize: _config.defaultSetSize,
                    setCount: _config.defaultSetCount,
-                   displayInterval: _config.defaultDisplayInterval
+                   displayInterval: _config.defaultDisplayInterval,
+                   isHardMode: _config.defaultIsHardMode,
                }
                return appConfig;
            }
@@ -324,6 +337,7 @@
                _const.setSize = parseInt(appConfig.setSize,10);
                _const.setCount = parseInt(appConfig.setCount,10);
                _const.displayInterval = parseInt(appConfig.displayInterval,10);
+               _var.isHardMode = appConfig.isHardMode;
                
                var tmp = parseFloat(_const.maxNum);
                var digitCount = 0;
@@ -339,6 +353,7 @@
                $(_selector.inputSetSize).val(_const.setSize);
                $(_selector.inputSetCount).val(_const.setCount);
                $(_selector.inputDisplayInterval).val(_const.displayInterval);
+               $(_selector.inputIsHardMode).prop("checked", _var.isHardMode);
                
                _const.blankDuration = _const.displayInterval;
            }
@@ -399,9 +414,13 @@
                $numberScreen = $(_selector.numberScreen);
                if (numberSetIndex in _var.numbers) {
                    var numberSet = _var.numbers[numberSetIndex];
+                   var reverseClz = (_var.isHardMode ? 'rotated' : '');
                    numberSet = $.map(numberSet, function(val, i){
-                       return "<div class='numberCell'>" + val + "</div>";
+                      return "<div class='numberCell " + reverseClz + "'>" + val + "</div>";
                    });
+                   if (_var.isHardMode) {
+                      numberSet.reverse();
+                   }
                    var rowNumStr = numberSet.join(_config.numberSeparator);
                    $numberScreen.html(rowNumStr).removeClass("invisible");
                    var $idx = $(_selector.gameMsg).find('span');
@@ -649,6 +668,16 @@
                                          pattern="0*[1-9][0-9]*" id="displayInterval" />
                                         <label class="mdl-textfield__label" for="displayInterval">Number...</label>
                                         <span class="mdl-textfield__error">Interval must be a positive integer!</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Hard Mode
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield" id="isHardModeWrapper">
+                                      <input type="checkbox" id="isHardMode"> Rotated (Start from botttom right) &nbsp;&nbsp;&nbsp;&nbsp;
                                     </div>
                                 </td>
                             </tr>
