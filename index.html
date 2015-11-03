@@ -446,6 +446,9 @@
                clearInterval(_var.game);
                clearTimeout(_var.rowTimeout);
                _var.gameStarted = false;
+			   if (!$(_selector.numberScreen).hasClass("invisible")) {
+				    $(_selector.numberScreen).addClass("invisible");
+				}
                $(_selector.gameMsg).html("You can Run again at anytime.").hide().fadeIn();
            }
            
