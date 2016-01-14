@@ -18,6 +18,10 @@
                min-width: 880px;
            }
            
+           label {
+               cursor: pointer;
+           }
+           
            .pageWrapper {
                width: 90%;
                margin: 50px auto;
@@ -46,6 +50,12 @@
                float: right;
                margin-right: 30px;
            }
+           
+           .clearfix:after {
+              content: "";
+              display: table;
+              clear: both;
+            }
            
            .configWrapper td, .configWrapper th, .configWrapper input, .configWrapper label {
                font-size: 14px;
@@ -177,6 +187,25 @@
               -webkit-transform: scale(-1);
               transform: scale(-1);
            }
+           
+           #inputTextDiv {
+               float: left;
+               margin-left: 50px;
+               display: none;
+           }
+           
+           #inputTextContent {
+               width: 550px;
+               height: 400px;
+               resize: both;
+               border: 1px grey dashed;
+               padding: 10px;
+               margin: 2px 5px;
+           }
+           
+           #inputTextContent:focus {
+               outline: 3px green dashed;
+           }
 
        </style>
        
@@ -204,6 +233,9 @@
                userAnswerInput: ".userAnswer",
                answer: ".answer",
                inputIsHardMode: "#isHardMode",
+               inputIsTextMode: "#isTextMode",
+               inputTextDiv: "#inputTextDiv",
+               inputTextContent: "#inputTextContent",
            }
            
            var _config = {
@@ -213,14 +245,20 @@
                defaultSetCount: 5,
                defaultDisplayInterval: 500,
                defaultIsHardMode: false,
+               defaultIsTextMode: false,
                numberSeparator: " ",
                cookieExpireDdays: 3650,
+               lineBreak: "<br/>",
+               strLineLimit: 0,
            }
            
            var _const = {
                appConfigCookieName: "appConfig",
                numberFontSize: 30, // Copy from CSS Value
                blankDuration: _config.defaultDisplayInterval,
+               maxNumDigitInOneBlock: 4,
+               replaceEmpty: '',
+               showingConfig: false,
            }
            
            var _var = {
@@ -228,6 +266,7 @@
                numStr: '',
                gameStarted: false,
                hardMode: false,
+               inputString: '',
            }
            
            var registerEvents = function() {
@@ -235,10 +274,18 @@
                    var isVisible = ($(_selector.configTable+":visible").length > 0)
                    if (isVisible) {
                        $(_selector.configTable).fadeOut();
+                       $(_selector.inputTextDiv).fadeOut();
+                       $(_selector.inputTextDiv).fadeOut();
+                       _const.showingConfig = false;
+                       reloadConfigToHTML();
                    }
                    else {
                        $(_selector.minMaxErrorMsgTR).hide();
                        $(_selector.configTable).fadeIn();
+                       if (_var.isTextMode && $(_selector.inputIsTextMode).prop("checked")) {
+                          $(_selector.inputTextDiv).fadeIn();
+                       }
+                       _const.showingConfig = true;
                    }
                });
                
@@ -255,13 +302,17 @@
                    var setCount = $(_selector.inputSetCount).val();
                    var displayInterval = $(_selector.inputDisplayInterval).val();
                    var isHardMode = $(_selector.inputIsHardMode).prop("checked");
+                   var isTextMode = $(_selector.inputIsTextMode).prop("checked");
+                   var inputText = $(_selector.inputTextContent).val();
                    var appConfig = {
                        minNum: parseInt(minNum,10),
                        maxNum: parseInt(maxNum,10),
                        setSize: parseInt(setSize,10),
                        setCount: parseInt(setCount,10),
                        displayInterval: parseInt(displayInterval,10),
-                       isHardMode: (isHardMode ? true : false)
+                       isHardMode: (isHardMode ? true : false),
+                       isTextMode: (isTextMode ? true : false),
+                       inputText: inputText,
                    }
                    
                    // Validate
@@ -302,6 +353,29 @@
                $(_selector.checkAnswerBtn).click(function(){
                    checkAnswer();
                });
+               
+               $(_selector.inputIsTextMode).change(function(){
+                   var checked = $(this).prop("checked");
+                   var displayValue = checked ? "none" : "";
+                   
+                   if (checked) {
+                       $(_selector.inputMinNum).parents("tr").fadeOut();
+                       $(_selector.inputMaxNum).parents("tr").fadeOut();
+                       $(_selector.inputSetCount).parents("tr").fadeOut();
+                       
+                       if (_const.showingConfig) {
+                           $(_selector.inputTextDiv).fadeIn();
+                           $(_selector.inputTextContent).focus();
+                       }
+                   }
+                   else {
+                       $(_selector.inputMinNum).parents("tr").fadeIn();
+                       $(_selector.inputMaxNum).parents("tr").fadeIn();
+                       $(_selector.inputSetCount).parents("tr").fadeIn();
+                       
+                       $(_selector.inputTextDiv).fadeOut();
+                   }
+               });
            }
            
            var getDefaultAppConfig = function() {
@@ -312,6 +386,7 @@
                    setCount: _config.defaultSetCount,
                    displayInterval: _config.defaultDisplayInterval,
                    isHardMode: _config.defaultIsHardMode,
+                   inputString: '',
                }
                return appConfig;
            }
@@ -339,7 +414,8 @@
                _const.setCount = parseInt(appConfig.setCount,10);
                _const.displayInterval = parseInt(appConfig.displayInterval,10);
                _var.isHardMode = appConfig.isHardMode;
-               
+               _var.isTextMode = appConfig.isTextMode;
+               _var.inputString = appConfig.inputText;
                var tmp = parseFloat(_const.maxNum);
                var digitCount = 0;
                while (tmp > 1.0) {
@@ -348,6 +424,10 @@
                }
                _const.maxNumOfDigits = digitCount;
                
+               reloadConfigToHTML();
+           }
+           
+           var reloadConfigToHTML = function() {
                // Set Value in Form
                $(_selector.inputMinNum).val(_const.minNum);
                $(_selector.inputMaxNum).val(_const.maxNum);
@@ -355,8 +435,12 @@
                $(_selector.inputSetCount).val(_const.setCount);
                $(_selector.inputDisplayInterval).val(_const.displayInterval);
                $(_selector.inputIsHardMode).prop("checked", _var.isHardMode);
+               $(_selector.inputIsTextMode).prop("checked", _var.isTextMode);
+               $(_selector.inputTextContent).val(_var.inputString);
                
                _const.blankDuration = _const.displayInterval;
+               
+               $(_selector.inputIsTextMode).trigger("change");
            }
            
            var loadGame = function() {
@@ -371,22 +455,63 @@
                $numberScreen = $(_selector.numberScreen);
                $numberScreen.css("height", "auto");
                $numberScreen.html(_var.numStr);
-               var minWidth = _const.numberFontSize * _const.maxNumOfDigits;
+               var minWidth = _var.isTextMode ? _const.numberFontSize : _const.numberFontSize * _const.maxNumOfDigits;
                $numberScreen.find(_selector.numberCell).css("min-width", minWidth);
                $numberScreen.css("height", $numberScreen.height());
                
-               // Generate Random Numbers
-               var randomNumArr = [];
-               var diff = _const.maxNum - _const.minNum + 1;
-               for (var i = 0; i < _const.setCount; i++) {
-                   var rowArr = [];
-                   for (var j = 0; j < _const.setSize; j++) {
-                       var randomNum = Math.floor(Math.random() * diff + _const.minNum);
-                       rowArr.push(randomNum);
+               if (_var.isTextMode) {
+                   // Generate String Set
+                   var str = _var.inputString;
+
+                   var stringArr = [];
+                   var strIdx = 0;
+                   var rowIdx = 0;
+                   while (true) {
+                       var reachEndOfInput = false;
+                       var rowArr = [];
+                       for (var j = 0; j < _const.setSize; j++) {
+                           if (!str[strIdx]) {
+                               reachEndOfInput = true;
+                               break;
+                           }
+                           var char = str[strIdx];
+                           if (!isNaN(char)) {
+                               while (true) {
+                                   if (char.length == _const.maxNumDigitInOneBlock || !str[strIdx+1]) break;
+                                   nextChar = str[strIdx+1] ? str[strIdx+1] : _const.replaceEmpty;
+                                   if (!isNaN(nextChar)) {
+                                       char += nextChar;
+                                       strIdx++;
+                                   }
+                                   else {
+                                       break;
+                                   }
+                               }
+                           }
+                           rowArr.push(char);
+                           strIdx++;
+                       }
+                       if (rowArr.length > 0) stringArr.push(rowArr);
+                       if (reachEndOfInput) break;
                    }
-                   randomNumArr.push(rowArr);
+                   _var.numbers = stringArr;
+                   _const.setCount = stringArr.length;
+                   reloadConfigToHTML();
                }
-               _var.numbers = randomNumArr;
+               else {
+                   // Generate Random Numbers
+                   var diff = _const.maxNum - _const.minNum + 1;
+                   var randomNumArr = [];
+                   for (var i = 0; i < _const.setCount; i++) {
+                       var rowArr = [];
+                       for (var j = 0; j < _const.setSize; j++) {
+                           var randomNum = Math.floor(Math.random() * diff + _const.minNum);
+                           rowArr.push(randomNum);
+                       }
+                       randomNumArr.push(rowArr);
+                   }
+                   _var.numbers = randomNumArr;
+               }
                
                $(_selector.gameMsg).html("Press Run to show numbers!").hide().fadeIn();
                
@@ -422,7 +547,20 @@
                    if (_var.isHardMode) {
                       numberSet.reverse();
                    }
-                   var rowNumStr = numberSet.join(_config.numberSeparator);
+                   //var rowNumStr = numberSet.join(_config.numberSeparator);
+                   var rowNumStr = "";
+                   for (var i=0; i<numberSet.length; i++) {
+                       rowNumStr += numberSet[i];
+                       if (i == numberSet.length) {
+                           rowNumStr += "";
+                       }
+                       else if ( _config.strLineLimit > 0 && ( (i+1) % _config.strLineLimit == 0 ) ) {
+                           rowNumStr += _config.lineBreak;
+                       }
+                       else {
+                           rowNumStr += _config.numberSeparator;
+                       }
+                   }
                    $numberScreen.html(rowNumStr).removeClass("invisible");
                    var $idx = $(_selector.gameMsg).find('span');
                    if ($idx.length == 0) {
@@ -580,7 +718,11 @@
             </div>
            </div>
             
-            <div class="configWrapper">
+            <div class="configWrapper clearfix">
+               <div id="inputTextDiv">
+                    <strong>Input Source Content For Text Mode:</strong><br/>
+                    <textarea id="inputTextContent"></textarea>
+               </div>
                <form id="configForm" action="#" onsubmit="return false">
                     <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp" id="configTable">
                         <thead>
@@ -681,7 +823,19 @@
                                 </td>
                                 <td>
                                     <div class="mdl-textfield mdl-js-textfield" id="isHardModeWrapper">
-                                      <input type="checkbox" id="isHardMode"> Rotated (Start from botttom right) &nbsp;&nbsp;&nbsp;&nbsp;
+                                      <label for="isHardMode">Rotated (Start from bottom right)</label> 
+                                      <input type="checkbox" id="isHardMode">
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Text Mode
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield" id="isTextModeWrapper">
+                                      <label for="isTextMode">Use Text As Input</label> 
+                                      <input type="checkbox" id="isTextMode">
                                     </div>
                                 </td>
                             </tr>
