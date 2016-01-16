@@ -236,6 +236,7 @@
                inputIsTextMode: "#isTextMode",
                inputTextDiv: "#inputTextDiv",
                inputTextContent: "#inputTextContent",
+               inputLineBreakAtPosN: "#inputLineBreakAtPosN",
            }
            
            var _config = {
@@ -246,17 +247,17 @@
                defaultDisplayInterval: 500,
                defaultIsHardMode: false,
                defaultIsTextMode: false,
+               defaultLineBreakAtPosN: 5,
                numberSeparator: " ",
                cookieExpireDdays: 3650,
                lineBreak: "<br/>",
-               strLineLimit: 0,
            }
            
            var _const = {
                appConfigCookieName: "appConfig",
                numberFontSize: 30, // Copy from CSS Value
                blankDuration: _config.defaultDisplayInterval,
-               maxNumDigitInOneBlock: 4,
+               maxNumDigitInOneBlock: -1,
                replaceEmpty: '',
                showingConfig: false,
            }
@@ -304,6 +305,7 @@
                    var isHardMode = $(_selector.inputIsHardMode).prop("checked");
                    var isTextMode = $(_selector.inputIsTextMode).prop("checked");
                    var inputText = $(_selector.inputTextContent).val();
+                   var lineBreakAtPosN = $(_selector.inputLineBreakAtPosN).val();
                    var appConfig = {
                        minNum: parseInt(minNum,10),
                        maxNum: parseInt(maxNum,10),
@@ -313,6 +315,7 @@
                        isHardMode: (isHardMode ? true : false),
                        isTextMode: (isTextMode ? true : false),
                        inputText: inputText,
+                       lineBreakAtPosN: lineBreakAtPosN,
                    }
                    
                    // Validate
@@ -387,6 +390,8 @@
                    displayInterval: _config.defaultDisplayInterval,
                    isHardMode: _config.defaultIsHardMode,
                    inputString: '',
+                   isTextMode: _config.defaultIsTextMode,
+                   lineBreakAtPosN: _config.defaultLineBreakAtPosN
                }
                return appConfig;
            }
@@ -413,6 +418,7 @@
                _const.setSize = parseInt(appConfig.setSize,10);
                _const.setCount = parseInt(appConfig.setCount,10);
                _const.displayInterval = parseInt(appConfig.displayInterval,10);
+               _const.lineBreakAtPosN = parseInt(appConfig.lineBreakAtPosN,10);
                _var.isHardMode = appConfig.isHardMode;
                _var.isTextMode = appConfig.isTextMode;
                _var.inputString = appConfig.inputText;
@@ -433,6 +439,7 @@
                $(_selector.inputMaxNum).val(_const.maxNum);
                $(_selector.inputSetSize).val(_const.setSize);
                $(_selector.inputSetCount).val(_const.setCount);
+               $(_selector.inputLineBreakAtPosN).val(_const.lineBreakAtPosN);
                $(_selector.inputDisplayInterval).val(_const.displayInterval);
                $(_selector.inputIsHardMode).prop("checked", _var.isHardMode);
                $(_selector.inputIsTextMode).prop("checked", _var.isTextMode);
@@ -463,6 +470,7 @@
                    // Generate String Set
                    var str = _var.inputString;
 
+                   var pattern = new RegExp("[A-Za-z0-9]");
                    var stringArr = [];
                    var strIdx = 0;
                    var rowIdx = 0;
@@ -475,11 +483,11 @@
                                break;
                            }
                            var char = str[strIdx];
-                           if (!isNaN(char)) {
+                           if (pattern.test(char)) {
                                while (true) {
                                    if (char.length == _const.maxNumDigitInOneBlock || !str[strIdx+1]) break;
                                    nextChar = str[strIdx+1] ? str[strIdx+1] : _const.replaceEmpty;
-                                   if (!isNaN(nextChar)) {
+                                   if (pattern.test(nextChar)) {
                                        char += nextChar;
                                        strIdx++;
                                    }
@@ -554,7 +562,7 @@
                        if (i == numberSet.length) {
                            rowNumStr += "";
                        }
-                       else if ( _config.strLineLimit > 0 && ( (i+1) % _config.strLineLimit == 0 ) ) {
+                       else if ( _const.lineBreakAtPosN > 0 && ( (i+1) % _const.lineBreakAtPosN == 0 ) ) {
                            rowNumStr += _config.lineBreak;
                        }
                        else {
@@ -788,6 +796,20 @@
                                          pattern="0*[1-9][0-9]*" id="setSize" />
                                         <label class="mdl-textfield__label" for="setSize">Number...</label>
                                         <span class="mdl-textfield__error">Size must be a positive integer!</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="mdl-data-table__cell--non-numeric">
+                                    Line Break At Position N. Input N:
+                                    <br/><small>(Max word count in each line in a set = N)</small>
+                                </td>
+                                <td>
+                                    <div class="mdl-textfield mdl-js-textfield">
+                                        <input class="mdl-textfield__input" type="text" required
+                                         pattern="[0-9][0-9]*" id="inputLineBreakAtPosN" />
+                                        <label class="mdl-textfield__label" for="displayInterval">Number...</label>
+                                        <span class="mdl-textfield__error">N must be a non-negative integer!</span>
                                     </div>
                                 </td>
                             </tr>
